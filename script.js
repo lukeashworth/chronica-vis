@@ -134,7 +134,6 @@ function getEdgeStyle(connection) {
     // Find and return the corresponding color if any status is found
     for (const [status, color] of Object.entries(statusMap)) {
         if (t.includes(status)) {
-            debugger
             return color;
         }
     }
