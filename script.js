@@ -152,7 +152,7 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
 
     if (standinCharacter) {
         // Place the "STANDIN" character where the kinship node would have been
-        if !isIdInList(nodes, standinCharacter.id) {
+        if (!isIdInList(nodes, standinCharacter.id)) {
             nodes.push({
                 id: standinCharacter.id,
                 label: standinCharacter.name,
@@ -172,7 +172,7 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
         kinshipCharacters.forEach((character, i) => {
             if (character.id !== standinCharacter.id) {
                 let position = characterPositions[i];
-                if !isIdInList(nodes, standinCharacter.id) {
+                if (!isIdInList(nodes, character.id)) {
                     nodes.push({
                         id: character.id,
                         label: character.name,
@@ -208,19 +208,19 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
         });
     } else {
         // If no "STANDIN", render the kinship node and connect characters to it
-	if !isIdInList(nodes, standinCharacter.id) {
-	        nodes.push({
-	            id: `kinship_${kinship.id}`,
-	            label: kinship.name,
-	            ...getNodeStyle(kinship, true, false), // Pass true for isKinship
-	            x: kinshipCenter.x,
-	            y: kinshipCenter.y,
-	            fixed: {
-	                x: true,
-	                y: true
-	            }
-	        });
-	}
+        if (!isIdInList(nodes, `kinship_${kinship.id}`)) {
+            nodes.push({
+                id: `kinship_${kinship.id}`,
+                label: kinship.name,
+                ...getNodeStyle(kinship, true, false), // Pass true for isKinship
+                x: kinshipCenter.x,
+                y: kinshipCenter.y,
+                fixed: {
+                    x: true,
+                    y: true
+                }
+            });
+        }
 
         // Calculate positions for characters within the kinship's circle
         const characterRadius = 100;
@@ -228,15 +228,15 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
 
         kinshipCharacters.forEach((character, i) => {
             let position = characterPositions[i];
-	    if !isIdInList(nodes, standinCharacter.id) {
-	            nodes.push({
-	                id: character.id,
-	                label: character.name,
-	                ...getNodeStyle(character, true, false), // Pass true for isKinship
-	                x: position.x,
-	                y: position.y,
-	            });
-	    }
+            if (!isIdInList(nodes, character.id)) {
+                nodes.push({
+                    id: character.id,
+                    label: character.name,
+                    ...getNodeStyle(character, true, false), // Pass true for isKinship
+                    x: position.x,
+                    y: position.y,
+                });
+            }
 
             // Add a red edge from the kinship to the character
             edges.push({
@@ -273,14 +273,14 @@ const nonKinshipNodes = campaignData.campaign.characters.filter(character => {
 });
 
 nonKinshipNodes.forEach(character => {
-    if !isIdInList(nodes, standinCharacter.id) {
-	    nodes.push({
-	        id: character.id,
-	        label: character.name,
-	        ...getNodeStyle(character, null),
-	        x: 0,
-	        y: 0
-	    });
+    if (!isIdInList(nodes, character.id)) {
+        nodes.push({
+            id: character.id,
+            label: character.name,
+            ...getNodeStyle(character, null),
+            x: 0,
+            y: 0
+        });
     }
 
     // Add edges based on konnections
