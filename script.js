@@ -13,7 +13,6 @@ function calculateCircularPositions(centerX, centerY, radius, totalNodes) {
     }
     return positions;
 }
-
 const nodeStyles = {
     character: {
         color: {
@@ -81,11 +80,9 @@ const nodeStyles = {
 const nodes = [];
 const edges = [];
 
-function getNodeStyle(character, isKinship, isStandin) {
+function getNodeStyle(character, isKinship) {
     if (character.player_id) { // Use player_id for identifying player characters
         return nodeStyles.character; // Player characters style
-    } else if (isStandin) {
-        return nodeStyles.kinship; // STANDIN characters get the kinship style
     } else if (isKinship) {
         return nodeStyles.kinship; // Kinship style for characters associated with a kinship
     } else {
@@ -126,10 +123,10 @@ function getEdgeStyle(connection) {
     }
 
     // Default return value if no match is found
-    return "Status not recognized";
+    return ""
 }
 // Calculate positions for kinship nodes in a larger circle
-const kinshipRadius = 500;
+const kinshipRadius =800;
 // Render all of the kinships
 const kinshipPositions = calculateCircularPositions(0, 0, kinshipRadius, campaignData.campaign.kinships.length);
 
@@ -141,24 +138,24 @@ function isIdInList(objectsList, idToCheck) {
 }
 
 
+// Render all of the kinships or kinship STANDIN
 campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
     const kinshipCenter = kinshipPositions[kinshipIndex];
-
     // Get characters that belong to this kinship
-    const kinshipCharacters = campaignData.campaign.characters.filter(character => {
+    const characters = campaignData.campaign.characters.filter(character => {
         return character.konnections.some(k => k.kinship_id === kinship.id);
     });
-
     // Identify if there's a "STANDIN" character connected to this kinship
-    const standinCharacter = kinshipCharacters.find(character => character.name.toLowerCase().includes("standin"));
-
+    const standinCharacter = characters.find(character => character.name.toLowerCase().includes("standin"));
+  
+    // Render all of the kinships
     if (standinCharacter) {
         // Place the "STANDIN" character where the kinship node would have been
         if (!isIdInList(nodes, standinCharacter.id)) {
             nodes.push({
                 id: standinCharacter.id,
-                label: standinCharacter.name,
-                ...getNodeStyle(standinCharacter, true, true), // Pass true for isStandin
+                label: replaceStringIgnoreCase(standinCharacter.name, "standin", ""),
+                ...getNodeStyle(standinCharacter, true), // Pass true for isStandin
                 x: kinshipCenter.x,
                 y: kinshipCenter.y,
                 fixed: {
@@ -167,136 +164,88 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
                 }
             });
         }
-        // Calculate positions for other characters around the "STANDIN" character
-        const characterRadius = 100;
-        const characterPositions = calculateCircularPositions(kinshipCenter.x, kinshipCenter.y, characterRadius, kinshipCharacters.length);
-
-        kinshipCharacters.forEach((character, i) => {
-            if (character.id !== standinCharacter.id) {
-                let position = characterPositions[i];
-                if (!isIdInList(nodes, character.id)) {
-                    nodes.push({
-                        id: character.id,
-                        label: character.name,
-                        ...getNodeStyle(character, true, false), // Pass true for isKinship
-                        x: position.x,
-                        y: position.y,
-                    });
-                }
-
-                // Connect them to the "STANDIN"
-                edges.push({
-                    from: standinCharacter.id,
-                    to: character.id,
-                    arrows: 'to, from',
-                });
-            }
-
-            // Add connections between the other characters
-            character.konnections.forEach(connection => {
-                if (connection.character_alt_id) {
-                    edges.push({
-                        from: character.id,
-                        to: connection.character_alt_id,
-                        label: connection.preposition + " " + connection.title,
-                        arrows: 'to, from',
-                        color: {
-                            color: getEdgeStyle(connection)
-                        },
-
-                    });
-                }
-            });
-        });
     } else {
         // If no "STANDIN", render the kinship node and connect characters to it
-	if (!isIdInList(nodes, `kinship_${kinship.id}`)) {
-	        nodes.push({
-	            id: `kinship_${kinship.id}`,
-	            label: kinship.name,
-	            ...getNodeStyle(kinship, true, false), // Pass true for isKinship
-	            x: kinshipCenter.x,
-	            y: kinshipCenter.y,
-	            fixed: {
-	                x: true,
-	                y: true
-	            }
-	        });
-	}
-
-        // Calculate positions for characters within the kinship's circle
-        const characterRadius = 100;
-        const characterPositions = calculateCircularPositions(kinshipCenter.x, kinshipCenter.y, characterRadius, kinshipCharacters.length);
-
-        kinshipCharacters.forEach((character, i) => {
-            let position = characterPositions[i];
-	    if (!isIdInList(nodes, character.id)) {
-	            nodes.push({
-	                id: character.id,
-	                label: character.name,
-	                ...getNodeStyle(character, true, false), // Pass true for isKinship
-	                x: position.x,
-	                y: position.y,
-	            });
-	    }
-
-            // Add a red edge from the kinship to the character
-            edges.push({
-                from: `kinship_${kinship.id}`,
-                to: character.id,
-                arrows: 'to, from',
-            });
-
-            // Add edges based on other konnections
-            character.konnections.forEach(connection => {
-                if (connection.character_alt_id) {
-                    edges.push({
-                        from: character.id,
-                        to: connection.character_alt_id,
-                        label: connection.preposition + " " + connection.title,
-                        arrows: 'to, from',
-                        color: {
-                            color: getEdgeStyle(connection)
-                        },
-                    });
+        if (!isIdInList(nodes, kinship.id)) {
+            nodes.push({
+                id: kinship.id,
+                label: kinship.name,
+                ...getNodeStyle(kinship, true), // Pass true for isKinship
+                x: kinshipCenter.x,
+                y: kinshipCenter.y,
+                fixed: {
+                    x: true,
+                    y: true
                 }
             });
+        }
+    }
+});
+
+function findObjectById(objects, targetId) {
+    return objects.find(obj => obj.id === targetId);
+}
+
+function replaceStringIgnoreCase(str, label, replacement) {
+    const regex = new RegExp(label, "i");
+    return str.replace(regex, replacement);
+}
+
+campaignData.campaign.characters.forEach((character, index) => {
+    // Calculate positions for characters within the kinship's circle
+    //const characterRadius = 100;
+    //const characterPositions = calculateCircularPositions(kinshipCenter.x, kinshipCenter.y, characterRadius, characters.length);  
+    // Render the character node
+    if (!isIdInList(nodes, character.id)) {
+        nodes.push({
+            id: character.id,
+            label: character.name,
+            ...getNodeStyle(character, false), // Pass true for isKinship
+            // x: position.x,
+            // y: position.y,
         });
     }
-});
 
-
-// Add non-kinship characters to the center if needed
-const nonKinshipNodes = campaignData.campaign.characters.filter(character => {
-    return !character.konnections.some(k => k.kinship_id);
-});
-
-nonKinshipNodes.forEach(character => {
-    if (!isIdInList(nodes, character.id)) {
-	    nodes.push({
-	        id: character.id,
-	        label: character.name,
-	        ...getNodeStyle(character, null),
-	        x: 0,
-	        y: 0
-	    });
-    }
-
-    // Add edges based on konnections
+    // Render all of their edges
+    // Add connections between the other characters
     character.konnections.forEach(connection => {
-        if (connection.character_alt_id) {
+    
+        // Check if the konnection is a connection that should go to a stand in instead of the kinship		
+        let conID = connection.character_alt_id
+        const kinshipID = connection.kinship_id
+        // If this is connection to a kinship
+        if (kinshipID) {
+            const kinship = findObjectById(campaignData.campaign.kinships, kinshipID);
+       
+            // Get all of the characters that are related to this kinship
+           	const characters = campaignData.campaign.characters.filter(character => {
+        			return character.konnections.some(k => k.kinship_id === kinship.id);
+            });
+            
+            const nameComp = kinship.name.toLowerCase() + " standin"
+            const standinCharacter = characters.find(character => character.name.toLowerCase() == nameComp);
+            conID = standinCharacter.id
+        }
+				
+        let label = connection.preposition + " " + connection.title
+        if (label.startsWith('at')) {
+        	label = label.replace("at ", "");
+        }
+        
+        if (character.id != conID) {
             edges.push({
                 from: character.id,
-                to: connection.character_alt_id,
-                label: connection.preposition + " " + connection.title,
-                arrows: 'to',
+                to: conID,
+                label: label,
+                arrows: 'to, from',
                 color: {
                     color: getEdgeStyle(connection)
                 },
             });
         }
+
     });
-});
+})
 
 // Create a network
 const container = document.getElementById('network');
@@ -304,6 +253,7 @@ const networkData = {
     nodes: new vis.DataSet(nodes),
     edges: new vis.DataSet(edges)
 };
+
 const options = {
     physics: {
         enabled: true,
@@ -359,11 +309,15 @@ const options = {
             color: '#848484',
             opacity: 1,
             inherit: false,
-        }
+        },
+        length: 200,
     },
     manipulation: {
         enabled: true,
         initiallyActive: false
     },
 };
+
+
+
 const network = new vis.Network(container, networkData, options);
