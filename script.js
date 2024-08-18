@@ -5,42 +5,82 @@ function calculateCircularPositions(centerX, centerY, radius, totalNodes) {
         const angle = (i / totalNodes) * 2 * Math.PI;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
-        positions.push({ x, y });
+        positions.push({
+            x,
+            y
+        });
     }
     return positions;
 }
 const nodeStyles = {
     character: {
-        color: { background: '#379683', border: '#28675B' },
-        font: { color: '#FFFFFF' },
-         shape: 'box',
-        shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 10, x: 5, y: 5 },
-        shapeProperties: { borderRadius: 12 }
+        color: {
+            background: '#379683',
+            border: '#28675B'
+        },
+        font: {
+            color: '#FFFFFF'
+        },
+        shape: 'box',
+        shadow: {
+            enabled: true,
+            color: 'rgba(0,0,0,0.5)',
+            size: 10,
+            x: 5,
+            y: 5
+        },
+        shapeProperties: {
+            borderRadius: 12
+        }
     },
     npc: {
-     shape: 'box',
-        color: { background: '#557A95', border: '#415A73' },
-        font: { color: '#FFFFFF' },
-        shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 10, x: 5, y: 5 },
-        shapeProperties: { borderRadius: 12 }
+        shape: 'box',
+        color: {
+            background: '#557A95',
+            border: '#415A73'
+        },
+        font: {
+            color: '#FFFFFF'
+        },
+        shadow: {
+            enabled: true,
+            color: 'rgba(0,0,0,0.5)',
+            size: 10,
+            x: 5,
+            y: 5
+        },
+        shapeProperties: {
+            borderRadius: 12
+        }
     },
     kinship: {
-        color: { background: '#FFD700', border: '#E5B700' },
-        font: { color: '#000000' },
-        shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 10, x: 5, y: 5 },
+        color: {
+            background: '#FFD700',
+            border: '#E5B700'
+        },
+        font: {
+            color: '#000000'
+        },
+        shadow: {
+            enabled: true,
+            color: 'rgba(0,0,0,0.5)',
+            size: 10,
+            x: 5,
+            y: 5
+        },
         shape: 'box',
-        shapeProperties: { borderRadius: 6 }
+        shapeProperties: {
+            borderRadius: 6
+        }
     },
 };
-
-
 
 // Create nodes and edges arrays
 const nodes = [];
 const edges = [];
 
 function getNodeStyle(character, isKinship, isStandin) {
-		if (character.player_id) { // Use player_id for identifying player characters
+    if (character.player_id) { // Use player_id for identifying player characters
         return nodeStyles.character; // Player characters style
     } else if (isStandin) {
         return nodeStyles.kinship; // STANDIN characters get the kinship style
@@ -88,7 +128,17 @@ function getEdgeStyle(connection) {
 }
 // Calculate positions for kinship nodes in a larger circle
 const kinshipRadius = 500;
+// Render all of the kinships
 const kinshipPositions = calculateCircularPositions(0, 0, kinshipRadius, campaignData.campaign.kinships.length);
+
+const createdNodes = []
+
+function isIdInList(objectsList, idToCheck) {
+    // Use the some() method to check if any object in the list has the idToCheck
+    return objectsList.some(obj => obj.id === idToCheck);
+}
+
+
 campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
     const kinshipCenter = kinshipPositions[kinshipIndex];
 
@@ -102,15 +152,19 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
 
     if (standinCharacter) {
         // Place the "STANDIN" character where the kinship node would have been
-        nodes.push({
-            id: standinCharacter.id,
-            label: standinCharacter.name,
-            ...getNodeStyle(standinCharacter, true, true),  // Pass true for isStandin
-            x: kinshipCenter.x,
-            y: kinshipCenter.y,
-            fixed: { x: true, y: true }
-        });
-
+        if !isIdInList(nodes, standinCharacter.id) {
+            nodes.push({
+                id: standinCharacter.id,
+                label: standinCharacter.name,
+                ...getNodeStyle(standinCharacter, true, true), // Pass true for isStandin
+                x: kinshipCenter.x,
+                y: kinshipCenter.y,
+                fixed: {
+                    x: true,
+                    y: true
+                }
+            });
+        }
         // Calculate positions for other characters around the "STANDIN" character
         const characterRadius = 100;
         const characterPositions = calculateCircularPositions(kinshipCenter.x, kinshipCenter.y, characterRadius, kinshipCharacters.length);
@@ -118,13 +172,16 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
         kinshipCharacters.forEach((character, i) => {
             if (character.id !== standinCharacter.id) {
                 let position = characterPositions[i];
-                nodes.push({
-                    id: character.id,
-                    label: character.name,
-                    ...getNodeStyle(character, true, false),  // Pass true for isKinship
-                    x: position.x,
-                    y: position.y,
-                });
+                if !isIdInList(nodes, standinCharacter.id) {
+                    nodes.push({
+                        id: character.id,
+                        label: character.name,
+                        ...getNodeStyle(character, true, false), // Pass true for isKinship
+                        x: position.x,
+                        y: position.y,
+                    });
+                }
+
                 // Connect them to the "STANDIN"
                 edges.push({
                     from: standinCharacter.id,
@@ -135,14 +192,15 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
 
             // Add connections between the other characters
             character.konnections.forEach(connection => {
-           			console.log(connection)
                 if (connection.character_alt_id) {
                     edges.push({
                         from: character.id,
                         to: connection.character_alt_id,
                         label: connection.preposition + " " + connection.title,
                         arrows: 'to, from',
-                        color: { color: getEdgeStyle(connection) },
+                        color: {
+                            color: getEdgeStyle(connection)
+                        },
 
                     });
                 }
@@ -150,14 +208,19 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
         });
     } else {
         // If no "STANDIN", render the kinship node and connect characters to it
-        nodes.push({
-            id: `kinship_${kinship.id}`,
-            label: kinship.name,
-            ...getNodeStyle(kinship, true, false),  // Pass true for isKinship
-            x: kinshipCenter.x,
-            y: kinshipCenter.y,
-            fixed: { x: true, y: true }
-        });
+	if !isIdInList(nodes, standinCharacter.id) {
+	        nodes.push({
+	            id: `kinship_${kinship.id}`,
+	            label: kinship.name,
+	            ...getNodeStyle(kinship, true, false), // Pass true for isKinship
+	            x: kinshipCenter.x,
+	            y: kinshipCenter.y,
+	            fixed: {
+	                x: true,
+	                y: true
+	            }
+	        });
+	}
 
         // Calculate positions for characters within the kinship's circle
         const characterRadius = 100;
@@ -165,32 +228,37 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
 
         kinshipCharacters.forEach((character, i) => {
             let position = characterPositions[i];
-            nodes.push({
-                id: character.id,
-                label: character.name,
-                ...getNodeStyle(character, true, false),  // Pass true for isKinship
-                x: position.x,
-                y: position.y,
-            });
+	    if !isIdInList(nodes, standinCharacter.id) {
+	            nodes.push({
+	                id: character.id,
+	                label: character.name,
+	                ...getNodeStyle(character, true, false), // Pass true for isKinship
+	                x: position.x,
+	                y: position.y,
+	            });
+	    }
 
             // Add a red edge from the kinship to the character
             edges.push({
                 from: `kinship_${kinship.id}`,
                 to: character.id,
-                color: { color: 'red' },
+                color: {
+                    color: 'red'
+                },
                 arrows: 'to, from',
             });
 
             // Add edges based on other konnections
             character.konnections.forEach(connection => {
-            
                 if (connection.character_alt_id) {
                     edges.push({
                         from: character.id,
                         to: connection.character_alt_id,
                         label: connection.preposition + " " + connection.title,
                         arrows: 'to, from',
-                        color: { color: getEdgeStyle(connection) },
+                        color: {
+                            color: getEdgeStyle(connection)
+                        },
                     });
                 }
             });
@@ -204,16 +272,16 @@ const nonKinshipNodes = campaignData.campaign.characters.filter(character => {
     return !character.konnections.some(k => k.kinship_id);
 });
 
-
 nonKinshipNodes.forEach(character => {
-
-    nodes.push({
-        id: character.id,
-        label: character.name,
-        ...getNodeStyle(character, null),
-        x: 0,
-        y: 0
-    });
+    if !isIdInList(nodes, standinCharacter.id) {
+	    nodes.push({
+	        id: character.id,
+	        label: character.name,
+	        ...getNodeStyle(character, null),
+	        x: 0,
+	        y: 0
+	    });
+    }
 
     // Add edges based on konnections
     character.konnections.forEach(connection => {
@@ -223,7 +291,9 @@ nonKinshipNodes.forEach(character => {
                 to: connection.character_alt_id,
                 label: connection.preposition + " " + connection.title,
                 arrows: 'to',
-                color: { color: getEdgeStyle(connection) },
+                color: {
+                    color: getEdgeStyle(connection)
+                },
             });
         }
     });
@@ -275,7 +345,10 @@ const options = {
     },
     edges: {
         arrows: {
-            to: { enabled: true, scaleFactor: 1 },
+            to: {
+                enabled: true,
+                scaleFactor: 1
+            },
         },
         font: {
             align: 'middle'
