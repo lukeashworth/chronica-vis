@@ -1,4 +1,3 @@
-
 // Function to calculate circular positions
 function calculateCircularPositions(centerX, centerY, radius, totalNodes) {
     const positions = [];
@@ -17,7 +16,11 @@ const nodeStyles = {
     character: {
         color: {
             background: '#379683',
-            border: '#28675B'
+            border: '#28675B',
+            hover: {
+                background: '#379683',
+                border: '#28675B'
+            }
         },
         font: {
             color: '#FFFFFF'
@@ -38,7 +41,11 @@ const nodeStyles = {
         shape: 'box',
         color: {
             background: '#557A95',
-            border: '#415A73'
+            border: '#415A73',
+            hover: {
+                background: '#557A95',
+                border: '#415A73'
+            }
         },
         font: {
             color: '#FFFFFF'
@@ -57,7 +64,11 @@ const nodeStyles = {
     kinship: {
         color: {
             background: '#FFD700',
-            border: '#E5B700'
+            border: '#E5B700',
+            hover: {
+                background: '#FFD700',
+                border: '#E5B700'
+            }
         },
         font: {
             color: '#000000'
@@ -92,7 +103,7 @@ function getNodeStyle(character, isKinship) {
 
 
 // Define color constants
-const RED_LOW_THREAT = "#FF9999";
+const RED_LOW_THREAT = "#FF6666";
 const RED_MEDIUM_THREAT = "#FF4D4D";
 const RED_HIGH_THREAT = "#B20000";
 
@@ -104,9 +115,12 @@ function getEdgeStyle(connection) {
     const t = connection.title.toLowerCase();
 
     // Direct mappings for specific keywords
-    if (t.includes("rival")) return RED_HIGH_THREAT;
-    if (t.includes("ally")) return GREEN_HIGH_SUPPORT;
-
+    if (t.includes("rival")) {
+        return RED_HIGH_THREAT;
+    }
+    if (t.includes("ally")) {
+        return GREEN_HIGH_SUPPORT;
+    }
     // Mappings for status levels
     const statusMap = {
         "+1": GREEN_LOW_SUPPORT,
@@ -119,14 +133,17 @@ function getEdgeStyle(connection) {
 
     // Find and return the corresponding color if any status is found
     for (const [status, color] of Object.entries(statusMap)) {
-        if (t.includes(status)) return color;
+        if (t.includes(status)) {
+            debugger
+            return color;
+        }
     }
 
     // Default return value if no match is found
-    return ""
+    return "#A9A9A9"
 }
 // Calculate positions for kinship nodes in a larger circle
-const kinshipRadius =800;
+const kinshipRadius = 800;
 // Render all of the kinships
 const kinshipPositions = calculateCircularPositions(0, 0, kinshipRadius, campaignData.campaign.kinships.length);
 
@@ -147,7 +164,7 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
     });
     // Identify if there's a "STANDIN" character connected to this kinship
     const standinCharacter = characters.find(character => character.name.toLowerCase().includes("standin"));
-  
+
     // Render all of the kinships
     if (standinCharacter) {
         // Place the "STANDIN" character where the kinship node would have been
@@ -176,7 +193,7 @@ campaignData.campaign.kinships.forEach((kinship, kinshipIndex) => {
                 fixed: {
                     x: true,
                     y: true
-                }
+                },
             });
         }
     }
@@ -192,9 +209,6 @@ function replaceStringIgnoreCase(str, label, replacement) {
 }
 
 campaignData.campaign.characters.forEach((character, index) => {
-    // Calculate positions for characters within the kinship's circle
-    //const characterRadius = 100;
-    //const characterPositions = calculateCircularPositions(kinshipCenter.x, kinshipCenter.y, characterRadius, characters.length);  
     // Render the character node
     if (!isIdInList(nodes, character.id)) {
         nodes.push({
@@ -209,29 +223,29 @@ campaignData.campaign.characters.forEach((character, index) => {
     // Render all of their edges
     // Add connections between the other characters
     character.konnections.forEach(connection => {
-    
+
         // Check if the konnection is a connection that should go to a stand in instead of the kinship		
         let conID = connection.character_alt_id
         const kinshipID = connection.kinship_id
         // If this is connection to a kinship
         if (kinshipID) {
             const kinship = findObjectById(campaignData.campaign.kinships, kinshipID);
-       
+
             // Get all of the characters that are related to this kinship
-           	const characters = campaignData.campaign.characters.filter(character => {
-        			return character.konnections.some(k => k.kinship_id === kinship.id);
+            const characters = campaignData.campaign.characters.filter(character => {
+                return character.konnections.some(k => k.kinship_id === kinship.id);
             });
-            
+
             const nameComp = kinship.name.toLowerCase() + " standin"
             const standinCharacter = characters.find(character => character.name.toLowerCase() == nameComp);
             conID = standinCharacter.id
         }
-				
+
         let label = connection.preposition + " " + connection.title
         if (label.startsWith('at')) {
-        	label = label.replace("at ", "");
+            label = label.replace("at ", "");
         }
-        
+
         if (character.id != conID) {
             edges.push({
                 from: character.id,
@@ -240,6 +254,7 @@ campaignData.campaign.characters.forEach((character, index) => {
                 arrows: 'to, from',
                 color: {
                     color: getEdgeStyle(connection)
+
                 },
             });
         }
@@ -283,6 +298,7 @@ const options = {
         dragView: true,
         zoomView: true,
         hover: true,
+        hoverConnectedEdges: false,
     },
     nodes: {
         borderWidth: 1,
@@ -306,7 +322,6 @@ const options = {
             type: 'continuous'
         },
         color: {
-            color: '#848484',
             opacity: 1,
             inherit: false,
         },
@@ -321,3 +336,81 @@ const options = {
 
 
 const network = new vis.Network(container, networkData, options);
+
+function cloneColorWithProperties(color, additionalProperties = {}) {
+    return {
+        ...color,
+        ...additionalProperties // Merge in additional properties
+    };
+}
+
+network.on('hoverNode', function(params) {
+    const nodeId = params.node;
+    const connectedEdges = network.getConnectedEdges(nodeId);
+    const connectedNodes = new Set(network.getConnectedNodes(nodeId));
+    connectedNodes.add(nodeId);
+
+    const edgeUpdates = [];
+    const nodeUpdates = [];
+
+    // Update connected edges
+    networkData.edges.forEach(function(edge) {
+        const isConnected = connectedEdges.includes(edge.id);
+        const updatedColor = isConnected ?
+            cloneColorWithProperties(edge.color, {
+                opacity: 1.0
+            }) :
+            cloneColorWithProperties(edge.color, {
+                opacity: 0.2
+            });
+
+        edgeUpdates.push({
+            id: edge.id,
+            color: updatedColor
+        });
+    });
+
+    // Update all nodes except the hovered node
+    networkData.nodes.forEach(function(node) {
+        if (node.id !== nodeId) {
+            const opacity = connectedNodes.has(node.id) ? 1.0 : 0.1;
+            nodeUpdates.push({
+                id: node.id,
+                opacity: opacity
+            });
+        }
+    });
+
+    // Apply updates in batches
+    networkData.edges.update(edgeUpdates);
+    networkData.nodes.update(nodeUpdates);
+});
+
+network.on('blurNode', function(params) {
+    // Arrays to collect batch updates
+    const edgeUpdates = [];
+    const nodeUpdates = [];
+
+    // Prepare edge updates to reset all edges to full opacity
+    networkData.edges.forEach(function(edge) {
+        const clonedColor = cloneColorWithProperties(edge.color, {
+            opacity: 1.0
+        });
+        edgeUpdates.push({
+            id: edge.id,
+            color: clonedColor
+        });
+    });
+
+    // Prepare node updates to reset all nodes to full opacity
+    networkData.nodes.forEach(function(node) {
+        nodeUpdates.push({
+            id: node.id,
+            opacity: 1.0
+        });
+    });
+
+    // Apply the batch updates
+    networkData.edges.update(edgeUpdates);
+    networkData.nodes.update(nodeUpdates);
+});
