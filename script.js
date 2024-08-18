@@ -13,6 +13,7 @@ function calculateCircularPositions(centerX, centerY, radius, totalNodes) {
     }
     return positions;
 }
+
 const nodeStyles = {
     character: {
         color: {
