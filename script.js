@@ -357,7 +357,11 @@ const nodeStyles = {
             hover: {
                 background: '#379683',
                 border: '#28675B'
-            }
+            },
+            highlight: {
+							background: '#379683',
+              border: '#28675B'
+            },
         },
         font: {
             color: '#FFFFFF'
@@ -380,6 +384,10 @@ const nodeStyles = {
             background: '#557A95',
             border: '#415A73',
             hover: {
+                background: '#557A95',
+                border: '#415A73'
+            },
+            highlight: {
                 background: '#557A95',
                 border: '#415A73'
             }
@@ -405,7 +413,11 @@ const nodeStyles = {
             hover: {
                 background: '#FFD700',
                 border: '#E5B700'
-            }
+            },
+            highlight: {
+                background: '#557A95',
+                border: '#415A73'
+            },
         },
         font: {
             color: '#000000'
