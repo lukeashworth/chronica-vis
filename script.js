@@ -2,21 +2,39 @@ function render() {
     let campignData
     try {
         campaignData = JSON.parse(document.getElementById('myTextArea').value);
-        console.log(campaignData)
-
     } catch (e) {
         console.log(e)
     }
-
-
 
     if (!campaignData) return
     // Create nodes and edges arrays
     const nodes = [];
     const edges = [];
 
+    // Function that takes campaignID and returns a function that takes characterID
+    const fetchCharacterData = (campaignID) => (characterID) => {
+        // Example logic for fetching character data
+        return `https://chronica.ventures/campaigns/${campaignID}/characters/${characterID}`;
+    };
 
+    // Function that takes campaignID and returns a function that takes kinshipID
+    const fetchKinshipData = (campaignID) => (kinshipID) => {
+        // Example logic for fetching kinship data
+        return `https://chronica.ventures/campaigns/${campaignID}/kinships/${kinshipID}`;
+    };
+    
+     const fetchConnectionData = (campaignID) => (connectionID) => {
+        // Example logic for fetching kinship data
+        return `https://chronica.ventures/campaigns/${campaignID}/konnections/${connectionID}/edit`;
+    };
 
+    // Example usage
+    let campaignID = campaignData.campaign.id
+    // Step 1: Curried functions for a specific campaign
+    const fetchForCampaignCharacter = fetchCharacterData(campaignID);
+    const fetchForCampaignKinship = fetchKinshipData(campaignID);
+    const fetchForCampaignConnection = fetchConnectionData(campaignID);
+    
     // Calculate positions for kinship nodes in a larger circle
     const kinshipRadius = 800;
     // Render all of the kinships
@@ -39,7 +57,8 @@ function render() {
         });
         // Identify if there's a "STANDIN" character connected to this kinship
         const standinCharacter = characters.find(character => character.name.toLowerCase().includes("standin"));
-
+				
+        const externalURL = fetchForCampaignKinship(kinship.id)
         // Render all of the kinships
         if (standinCharacter) {
             // Place the "STANDIN" character where the kinship node would have been
@@ -53,7 +72,8 @@ function render() {
                     fixed: {
                         x: true,
                         y: true
-                    }
+                    },
+                    externalURL: externalURL
                 });
             }
         } else {
@@ -69,6 +89,7 @@ function render() {
                         x: true,
                         y: true
                     },
+                    externalURL: externalURL
                 });
             }
         }
@@ -92,13 +113,13 @@ function render() {
                 ...getNodeStyle(character, false), // Pass true for isKinship
                 // x: position.x,
                 // y: position.y,
+                externalURL: fetchForCampaignCharacter(character.id)
             });
         }
 
         // Render all of their edges
         // Add connections between the other characters
         character.konnections.forEach(connection => {
-
             // Check if the konnection is a connection that should go to a stand in instead of the kinship		
             let conID = connection.character_alt_id
             const kinshipID = connection.kinship_id
@@ -128,9 +149,10 @@ function render() {
                     label: label,
                     arrows: 'to, from',
                     color: {
-                        color: getEdgeStyle(connection)
-
+                        color: getEdgeStyle(connection),
+                        hover:  getEdgeStyle(connection)
                     },
+                    externalURL: fetchForCampaignConnection(connection.id)
                 });
             }
 
@@ -206,6 +228,7 @@ function render() {
             enabled: true,
             initiallyActive: false
         },
+        chosen: false
     };
 
 
@@ -290,10 +313,27 @@ function render() {
         networkData.nodes.update(nodeUpdates);
     });
 
-
+    network.on('click', function(properties) {
+        var nodeId = properties.nodes[0]; // Get the clicked node ID
+        if (nodeId) {
+            var clickedNode = networkData.nodes.get(nodeId); // Retrieve the node data
+            const externalURL = clickedNode.externalURL 
+            if (externalURL) {
+                window.open(externalURL, '_blank'); // Open the node's URL in a new tab
+            }
+            return
+        }
+      	var edgeID = properties.edges[0]; // Get the clicked node ID
+        if (edgeID) {
+            var clickeEdge  = networkData.edges.get(edgeID); // Retrieve the node data
+            const externalURL = clickeEdge.externalURL 
+            if (externalURL) {
+                window.open(externalURL, '_blank'); // Open the node's URL in a new tab
+            }
+            return
+        }
+    });
 }
-
-
 
 // Function to calculate circular positions
 function calculateCircularPositions(centerX, centerY, radius, totalNodes) {
