@@ -134,7 +134,9 @@ function render() {
 
                 const nameComp = kinship.name.toLowerCase() + " standin"
                 const standinCharacter = characters.find(character => character.name.toLowerCase() == nameComp);
-                conID = standinCharacter.id
+		if standinCharacter {
+			conID = standinCharacter.id
+		}
             }
 
             let label = connection.preposition + " " + connection.title
