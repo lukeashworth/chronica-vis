@@ -134,7 +134,7 @@ function render() {
 
                 const nameComp = kinship.name.toLowerCase() + " standin"
                 const standinCharacter = characters.find(character => character.name.toLowerCase() == nameComp);
-		if standinCharacter {
+		if (standinCharacter) {
 			conID = standinCharacter.id
 		}
             }
